@@ -10,51 +10,61 @@ public class HTTPServer {
         ServerSocket serverSocket = new ServerSocket(port);
 
         System.out.println("Waiting for a client...");
-        Socket clientSocket = serverSocket.accept();
-        System.out.println("Client connected");
+        while(true) {
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        OutputStreamWriter writer = new OutputStreamWriter(clientSocket.getOutputStream());
 
-        String firstLine = reader.readLine();
-        System.out.println("Request: " + firstLine);
+            Socket clientSocket = serverSocket.accept();
+            System.out.println("Client connected");
 
-        if (firstLine != null) {
-            String[] requestParts = firstLine.split(" ");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            OutputStreamWriter writer = new OutputStreamWriter(clientSocket.getOutputStream());
 
-            String method = requestParts[0];
-            String path = requestParts[1];
+            String firstLine = reader.readLine();
+            System.out.println("Request: " + firstLine);
 
-            String headerLine;
-            while ((headerLine = reader.readLine()) != null && !headerLine.equals("")) {
-                System.out.println(headerLine);
+            String line;
+            while ((line = reader.readLine()) != null && !line.isEmpty()) {
+                System.out.println("Header: " + line);
             }
 
-            String body;
-            String statusLine;
+            if (firstLine != null) {
+                String[] requestParts = firstLine.split(" ");
 
-            if (method.equals("GET")) {
-                if (path.equals("/") || path.equals("/index.html")) {
-                    statusLine = "HTTP/1.1 200 OK\r\n";
-                    body = "<html><body><h1>Welcome</h1><p>This is my page.</p></body></html>";
+                String method = requestParts[0];
+                String path = requestParts[1];
+
+                String headerLine;
+                while ((headerLine = reader.readLine()) != null && !headerLine.equals("")) {
+                    System.out.println(headerLine);
+                }
+
+
+                String body;
+                String statusLine;
+
+                if (method.equals("GET")) {
+                    if (path.equals("/") || path.equals("/index.html")) {
+                        statusLine = "HTTP/1.1 200 OK\r\n";
+                        body = "<html><body><h1>Welcome</h1><p>This is my page.</p></body></html>";
+                    } else {
+                        statusLine = "HTTP/1.1 400 Bad Request\r\n";
+                        body = "<html><body><h1>400 Bad Request</h1><p>Page not found.</p></body></html>";
+                    }
                 } else {
                     statusLine = "HTTP/1.1 400 Bad Request\r\n";
-                    body = "<html><body><h1>400 Bad Request</h1><p>Page not found.</p></body></html>";
+                    body = "<html><body><h1>400 Bad Request</h1><p>Only GET is supported.</p></body></html>";
                 }
-            } else {
-                statusLine = "HTTP/1.1 400 Bad Request\r\n";
-                body = "<html><body><h1>400 Bad Request</h1><p>Only GET is supported.</p></body></html>";
+
+                writer.write(statusLine);
+                writer.write("Content-Type: text/html\r\n");
+                writer.write("Content-Length: " + body.length() + "\r\n");
+                writer.write("\r\n");
+                writer.write(body);
+                writer.flush();
             }
 
-            writer.write(statusLine);
-            writer.write("Content-Type: text/html\r\n");
-            writer.write("Content-Length: " + body.length() + "\r\n");
-            writer.write("\r\n");
-            writer.write(body);
-            writer.flush();
+            clientSocket.close();
+            serverSocket.close();
         }
-
-        clientSocket.close();
-        serverSocket.close();
     }
 }
